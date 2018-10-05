@@ -1,0 +1,75 @@
+---
+# tasks file for ali.elasticsearch
+
+- name: Add Elasticsearch GPG key.
+  rpm_key:
+    key: https://packages.elastic.co/GPG-KEY-elasticsearch
+    state: present
+
+- name: Add Elasticsearch repository.
+  copy:
+    src: elasticsearch.repo
+    dest: /etc/yum.repos.d/elasticsearch.repo
+    mode: 0644
+
+- name: installing Required packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - java-1.8*
+    - elasticsearch
+    - kibana
+
+- name: Enabling elasticsearch services
+  service: 
+    name: elasticsearch
+    enabled: yes
+    state: started
+
+- name: Enabling services
+  service: 
+    name: kibana
+    enabled: yes
+    state: started
+
+- name: stoping firewalld
+  firewalld:
+    state: disabled
+
+- name: Disabling selinux
+  selinux:
+    policy: targeted
+    state: permissive
+
+- name: Replacing elasticsearch ip in config file
+  lineinfile:
+    path: /etc/elasticsearch/elasticsearch.yml
+    state: present
+    regexp: '^#network.host: 192.168.0.1\s'
+    line: 'network.host: 192.168.56.102'
+
+- name: Replacing kibana ip in kibana config file
+  lineinfile:
+    path: /etc/kibana/kibana.yml
+    state: present
+    regexp: '^#server.host: "localhost"\s'
+    line: 'server.host: 192.168.56.102'
+   
+- name: Replacing elasticsearch ip in kibana config file
+  lineinfile:
+    path: /etc/kibana/kibana.yml
+    state: present
+    regexp: '^#elasticsearch.url: "http://localhost:9200"\s'
+    line: 'elasticsearch.url: http://192.168.56.102:9200'
+
+- name: Restarting service
+  service:
+    name: elasticsearch
+    state: restarted
+
+- name: Restarting services
+  service:
+    name: kibana
+    state: restarted
+
